@@ -198,7 +198,6 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 			fields["require_code"] = false
 		}
 	}
-	fields["test"] = ok
 	fields["response_time"] = time.Since(start).Seconds()
 	fields["http_code"] = resp.StatusCode
 	return fields, nil
