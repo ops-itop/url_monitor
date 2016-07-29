@@ -65,6 +65,9 @@ func TestHeaders(t *testing.T) {
 		Address:         ts.URL,
 		Method:          "GET",
 		ResponseTimeout: internal.Duration{Duration: time.Second * 2},
+		App:             monitor,
+		Require_Str      "github",
+		Require_Code     "200",
 		Headers: map[string]string{
 			"Content-Type": "application/json",
 			"Host":         "Hello",
@@ -88,6 +91,9 @@ func TestFields(t *testing.T) {
 		Address:         ts.URL + "/good",
 		Body:            "{ 'test': 'data'}",
 		Method:          "GET",
+		App:             monitor,
+		Require_Str      "github",
+		Require_Code     "200",
 		ResponseTimeout: internal.Duration{Duration: time.Second * 20},
 		Headers: map[string]string{
 			"Content-Type": "application/json",
@@ -112,6 +118,9 @@ func TestRedirects(t *testing.T) {
 		Address:         ts.URL + "/redirect",
 		Body:            "{ 'test': 'data'}",
 		Method:          "GET",
+		App:             monitor,
+		Require_Str      "github",
+		Require_Code     "200",
 		ResponseTimeout: internal.Duration{Duration: time.Second * 20},
 		Headers: map[string]string{
 			"Content-Type": "application/json",
@@ -129,6 +138,9 @@ func TestRedirects(t *testing.T) {
 		Address:         ts.URL + "/badredirect",
 		Body:            "{ 'test': 'data'}",
 		Method:          "GET",
+		App:             monitor,
+		Require_Str      "github",
+		Require_Code     "200",
 		ResponseTimeout: internal.Duration{Duration: time.Second * 20},
 		Headers: map[string]string{
 			"Content-Type": "application/json",
@@ -148,6 +160,9 @@ func TestMethod(t *testing.T) {
 		Address:         ts.URL + "/mustbepostmethod",
 		Body:            "{ 'test': 'data'}",
 		Method:          "POST",
+		App:             monitor,
+		Require_Str      "github",
+		Require_Code     "200",
 		ResponseTimeout: internal.Duration{Duration: time.Second * 20},
 		Headers: map[string]string{
 			"Content-Type": "application/json",
@@ -165,6 +180,9 @@ func TestMethod(t *testing.T) {
 		Address:         ts.URL + "/mustbepostmethod",
 		Body:            "{ 'test': 'data'}",
 		Method:          "GET",
+		App:             monitor,
+		Require_Str      "github",
+		Require_Code     "200",
 		ResponseTimeout: internal.Duration{Duration: time.Second * 20},
 		Headers: map[string]string{
 			"Content-Type": "application/json",
@@ -183,6 +201,9 @@ func TestMethod(t *testing.T) {
 		Address:         ts.URL + "/mustbepostmethod",
 		Body:            "{ 'test': 'data'}",
 		Method:          "head",
+		App:             monitor,
+		Require_Str      "github",
+		Require_Code     "200",
 		ResponseTimeout: internal.Duration{Duration: time.Second * 20},
 		Headers: map[string]string{
 			"Content-Type": "application/json",
@@ -206,6 +227,9 @@ func TestBody(t *testing.T) {
 		Address:         ts.URL + "/musthaveabody",
 		Body:            "{ 'test': 'data'}",
 		Method:          "GET",
+		App:             monitor,
+		Require_Str      "github",
+		Require_Code     "200",
 		ResponseTimeout: internal.Duration{Duration: time.Second * 20},
 		Headers: map[string]string{
 			"Content-Type": "application/json",
@@ -222,6 +246,9 @@ func TestBody(t *testing.T) {
 	h = &HTTPResponse{
 		Address:         ts.URL + "/musthaveabody",
 		Method:          "GET",
+		App:             monitor,
+		Require_Str      "github",
+		Require_Code     "200",
 		ResponseTimeout: internal.Duration{Duration: time.Second * 20},
 		Headers: map[string]string{
 			"Content-Type": "application/json",
@@ -245,6 +272,9 @@ func TestTimeout(t *testing.T) {
 		Address:         ts.URL + "/twosecondnap",
 		Body:            "{ 'test': 'data'}",
 		Method:          "GET",
+		App:             monitor,
+		Require_Str      "github",
+		Require_Code     "200",
 		ResponseTimeout: internal.Duration{Duration: time.Second * 1},
 		Headers: map[string]string{
 			"Content-Type": "application/json",

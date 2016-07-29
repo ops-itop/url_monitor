@@ -3,10 +3,12 @@ package url_monitor
 import (
 	"errors"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+	"regexp"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/internal"
@@ -15,12 +17,17 @@ import (
 
 // HTTPResponse struct
 type HTTPResponse struct {
+	App				string
 	Address         string
 	Body            string
 	Method          string
 	ResponseTimeout internal.Duration
 	Headers         map[string]string
 	FollowRedirects bool
+	Require_Str		string
+	Require_Code    string
+	Faild_count     int
+	Faild_timeout   float32
 
 	// Path to CA file
 	SSLCA string `toml:"ssl_ca"`
@@ -38,12 +45,19 @@ func (h *HTTPResponse) Description() string {
 }
 
 var sampleConfig = `
+  ## App Name
+  app = "monitor"
   ## Server address (default http://localhost)
   address = "http://github.com"
   ## Set response_timeout (default 5 seconds)
   response_timeout = "5s"
   ## HTTP Request Method
   method = "GET"
+  ## Require String
+  require_str = "github"
+  require_code = "20\d"
+  failed_count = 3
+  faild_timeout = 0.5
   ## Whether to follow redirects from the server (defaults to false)
   follow_redirects = true
   ## HTTP Request Headers (all values must be strings)
@@ -109,6 +123,7 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 	if h.Body != "" {
 		body = strings.NewReader(h.Body)
 	}
+	
 	request, err := http.NewRequest(h.Method, h.Address, body)
 	if err != nil {
 		return nil, err
@@ -133,6 +148,32 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 			err = nil
 		} else {
 			return nil, err
+		}
+	}
+
+	// require string
+	if h.Require_Str == "" {
+		fields["require_match"] = 1
+	}else{
+		r,_ := regexp.CompilePOSIX(h.Require_Str)
+		body,_ := ioutil.ReadAll(resp.Body)
+		bodystr := string(body)
+		if r.FindString(bodystr) != ""{
+			fields["require_match"] = 1
+		}else {
+			fields["require_match"] = 0
+		}
+	}
+
+	// require http code
+	if h.Require_Code == "" {
+		fields["require_code"] = 1
+	}else {
+		r,_ := regexp.CompilePOSIX(h.Require_Code)
+		if r.FindString(string(resp.StatusCode)) != "" {
+			fields["require_code"] = 1
+		}else {
+			fields["require_code"] = 0
 		}
 	}
 	fields["response_time"] = time.Since(start).Seconds()
@@ -161,7 +202,7 @@ func (h *HTTPResponse) Gather(acc telegraf.Accumulator) error {
 		return errors.New("Only http and https are supported")
 	}
 	// Prepare data
-	tags := map[string]string{"server": h.Address, "method": h.Method}
+	tags := map[string]string{"app": h.App, "url": h.Address, "method": h.Method}
 	var fields map[string]interface{}
 	// Gather data
 	fields, err = h.HTTPGather()
