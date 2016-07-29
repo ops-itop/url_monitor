@@ -57,5 +57,5 @@ This input plugin will test HTTP/HTTPS connections.
 ```
 # ./telegraf -config url.conf -test
 * Plugin: url_monitor, Collection 1
-> url_monitor,app=monitor,host=cn.monitor,method=GET,url=http://www.baidu.com http_code=200i,require_code=true,require_match=true,response_time=0.032829802000000005,test=false 1469817768000000000
+> url_monitor,app=monitor,host=cn.monitor,method=GET,url=http://www.baidu.com http_code=200i,require_code=true,require_match=true,response_time=0.032829802000000005 1469817768000000000
 ```
