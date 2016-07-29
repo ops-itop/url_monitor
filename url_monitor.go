@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 	"regexp"
+	"strconv"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/internal"
@@ -24,10 +25,10 @@ type HTTPResponse struct {
 	ResponseTimeout internal.Duration
 	Headers         map[string]string
 	FollowRedirects bool
-	Require_Str		string
-	Require_Code    string
-	Faild_count     int
-	Faild_timeout   float32
+	RequireStr		string
+	RequireCode     string
+	FailedCount     int
+	FailedTimeout   float32
 
 	// Path to CA file
 	SSLCA string `toml:"ssl_ca"`
@@ -53,11 +54,11 @@ var sampleConfig = `
   response_timeout = "5s"
   ## HTTP Request Method
   method = "GET"
-  ## Require String
-  require_str = "github"
-  require_code = "20\d"
+  ## Require String 正则表达式用单引号避免转义
+  require_str = 'github'
+  require_code = '20\d'
   failed_count = 3
-  faild_timeout = 0.5
+  failed_timeout = 0.5
   ## Whether to follow redirects from the server (defaults to false)
   follow_redirects = true
   ## HTTP Request Headers (all values must be strings)
@@ -122,11 +123,16 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 	var body io.Reader
 	if h.Body != "" {
 		body = strings.NewReader(h.Body)
+		if h.Method == "GET" {
+			h.Address = h.Address + "?" + h.Body
+			body = nil
+		}
 	}
-	
 	request, err := http.NewRequest(h.Method, h.Address, body)
 	if err != nil {
-		return nil, err
+		fields["msg"] = err
+		//return fields,nil
+		//return nil, err
 	}
 
 	for key, val := range h.Headers {
@@ -141,43 +147,60 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 	resp, err := client.Do(request)
 	if err != nil {
 		if h.FollowRedirects {
-			return nil, err
+			fields["msg"] = err
+			//return fields,nil
+			//return nil, err
 		}
 		if urlError, ok := err.(*url.Error); ok &&
 			urlError.Err == ErrRedirectAttempted {
 			err = nil
 		} else {
-			return nil, err
+			fields["msg"] = err
+			//err = nil
+			//return fields,nil
 		}
 	}
 
+	_, ok := fields["msg"] 
+	if ok {
+		fields["require_match"] = false
+		fields["require_code"] = false
+		fields["response_time"] = time.Since(start).Seconds()
+		fields["http_code"] = 000
+		return fields, nil
+	}
 	// require string
-	if h.Require_Str == "" {
-		fields["require_match"] = 1
+	if h.RequireStr == "" {
+		fields["require_match"] = true
 	}else{
-		r,_ := regexp.CompilePOSIX(h.Require_Str)
+		r,_ := regexp.Compile(h.RequireStr)
+		//r,_ := regexp.CompilePOSIX(h.RequireStr)
 		body,_ := ioutil.ReadAll(resp.Body)
 		bodystr := string(body)
 		if r.FindString(bodystr) != ""{
-			fields["require_match"] = 1
+			fields["require_match"] = true
 		}else {
-			fields["require_match"] = 0
+			fields["require_match"] = false
+			fields["msg"] = bodystr
 		}
 	}
 
 	// require http code
-	if h.Require_Code == "" {
-		fields["require_code"] = 1
+	if h.RequireCode == "" {
+		fields["require_code"] = true
 	}else {
-		r,_ := regexp.CompilePOSIX(h.Require_Code)
-		if r.FindString(string(resp.StatusCode)) != "" {
-			fields["require_code"] = 1
+		r,_ := regexp.Compile(h.RequireCode)
+		//r,_ := regexp.CompilePOSIX(h.RequireCode)
+		status_code :=  strconv.Itoa(resp.StatusCode)
+		if r.FindString(status_code) != "" {
+			fields["require_code"] = true
 		}else {
-			fields["require_code"] = 0
+			fields["require_code"] = false
 		}
 	}
+	fields["test"] = ok
 	fields["response_time"] = time.Since(start).Seconds()
-	fields["url_monitor_code"] = resp.StatusCode
+	fields["http_code"] = resp.StatusCode
 	return fields, nil
 }
 
