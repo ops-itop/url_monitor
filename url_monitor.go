@@ -49,21 +49,18 @@ var sampleConfig = `
   ## App Name
   app = "monitor"
   ## Server address (default http://localhost)
-  address = "http://github.com"
+  address = "http://www.baidu.com"
   ## Set response_timeout (default 5 seconds)
   response_timeout = "5s"
   ## HTTP Request Method
   method = "GET"
   ## Require String 正则表达式用单引号避免转义
-  require_str = 'github'
+  require_str = 'baidu.com'
   require_code = '20\d'
   failed_count = 3
   failed_timeout = 0.5
   ## Whether to follow redirects from the server (defaults to false)
   follow_redirects = true
-  ## HTTP Request Headers (all values must be strings)
-  # [inputs.url_monitor.headers]
-  #   Host = "github.com"
   ## Optional HTTP Request Body
   # body = '''
   # {'fake':'data'}
@@ -75,6 +72,11 @@ var sampleConfig = `
   # ssl_key = "/etc/telegraf/key.pem"
   ## Use SSL but skip chain & host verification
   # insecure_skip_verify = false
+
+  ## HTTP Request Headers (all values must be strings)
+  ## 表格名下，直到下一个表格名或文件尾，均为当前表格的内容 所以Headers应该放在最后
+  # [inputs.url_monitor.headers]
+  #   Host = "github.com"
 `
 
 // SampleConfig returns the plugin SampleConfig
@@ -224,7 +226,7 @@ func (h *HTTPResponse) Gather(acc telegraf.Accumulator) error {
 		return errors.New("Only http and https are supported")
 	}
 	// Prepare data
-	tags := map[string]string{"app": h.App, "url": h.Address, "method": h.Method}
+	tags := map[string]string{"app": h.App, "url": h.Address, "method": h.Method, "require_code": h.RequireCode, "require_str":h.RequireStr}
 	var fields map[string]interface{}
 	// Gather data
 	fields, err = h.HTTPGather()
