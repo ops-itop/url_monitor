@@ -123,14 +123,15 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 	}
 
 	var body io.Reader
+	address := h.Address
 	if h.Body != "" {
 		body = strings.NewReader(h.Body)
 		if h.Method == "GET" {
-			h.Address = h.Address + "?" + h.Body
+			address = h.Address + "?" + h.Body
 			body = nil
 		}
 	}
-	request, err := http.NewRequest(h.Method, h.Address, body)
+	request, err := http.NewRequest(h.Method, address, body)
 	if err != nil {
 		fields["msg"] = err
 		//return fields,nil
@@ -173,31 +174,31 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 	}
 	// require string
 	if h.RequireStr == "" {
-		fields["require_match"] = true
+		fields["data_match"] = 1
 	}else{
 		r,_ := regexp.Compile(h.RequireStr)
 		//r,_ := regexp.CompilePOSIX(h.RequireStr)
 		body,_ := ioutil.ReadAll(resp.Body)
 		bodystr := string(body)
 		if r.FindString(bodystr) != ""{
-			fields["require_match"] = true
+			fields["data_match"] = 1
 		}else {
-			fields["require_match"] = false
+			fields["data_match"] = 0
 			fields["msg"] = bodystr
 		}
 	}
 
 	// require http code
 	if h.RequireCode == "" {
-		fields["require_code"] = true
+		fields["code_match"] = 1
 	}else {
 		r,_ := regexp.Compile(h.RequireCode)
 		//r,_ := regexp.CompilePOSIX(h.RequireCode)
 		status_code :=  strconv.Itoa(resp.StatusCode)
 		if r.FindString(status_code) != "" {
-			fields["require_code"] = true
+			fields["code_match"] = 1
 		}else {
-			fields["require_code"] = false
+			fields["code_match"] = 0
 		}
 	}
 	fields["response_time"] = time.Since(start).Seconds()
