@@ -28,7 +28,7 @@ type HTTPResponse struct {
 	RequireStr		string
 	RequireCode     string
 	FailedCount     int
-	FailedTimeout   float32
+	FailedTimeout   float64
 
 	// Path to CA file
 	SSLCA string `toml:"ssl_ca"`
@@ -166,8 +166,8 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 
 	_, ok := fields["msg"] 
 	if ok {
-		fields["require_match"] = false
-		fields["require_code"] = false
+		fields["data_match"] = 0
+		fields["code_match"] = 0
 		fields["response_time"] = time.Since(start).Seconds()
 		fields["http_code"] = 000
 		return fields, nil
@@ -203,6 +203,17 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 	}
 	fields["response_time"] = time.Since(start).Seconds()
 	fields["http_code"] = resp.StatusCode
+
+	// require response time
+	fields["time_match"] = 1
+
+	rt := fields["response_time"].(float64)
+	if rt > h.FailedTimeout {
+		fields["time_match"] = 0
+	}
+	if fields["time_match"] == 0 && rt < h.FailedTimeout * 0.7 {
+		fields["time_match"] = 1
+	}
 	return fields, nil
 }
 
@@ -227,7 +238,7 @@ func (h *HTTPResponse) Gather(acc telegraf.Accumulator) error {
 		return errors.New("Only http and https are supported")
 	}
 	// Prepare data
-	tags := map[string]string{"app": h.App, "url": h.Address, "method": h.Method, "require_code": h.RequireCode, "require_str":h.RequireStr}
+	tags := map[string]string{"app": h.App, "url": h.Address, "method": h.Method, "require_code": h.RequireCode, "require_str":h.RequireStr, "require_time":strconv.FormatFloat(h.FailedTimeout, 'g', 1, 64), "failed_threshold":strconv.Itoa(h.FailedCount)}
 	var fields map[string]interface{}
 	// Gather data
 	fields, err = h.HTTPGather()
