@@ -152,7 +152,7 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 	}
 	//如果没有指定content-type，则设置默认值为application/x-www-form-urlencoded
 	if content_type == 0 {
-		request.Header.Add("Content-type", "application/x-www-form-urlencoded")
+		request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	}
 
 	// Start Timer
