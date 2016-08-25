@@ -138,11 +138,21 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 		//return nil, err
 	}
 
+	content_type := 0
 	for key, val := range h.Headers {
 		request.Header.Add(key, val)
 		if key == "Host" {
 			request.Host = val
 		}
+		
+		//如果指定了content-type, content_type设置为1
+		if strings.ToLower(key) == "content-type" {
+			content_type = 1
+		}
+	}
+	//如果没有指定content-type，则设置默认值为application/x-www-form-urlencoded
+	if content_type == 0 {
+		request.Header.Add("Content-type", "application/x-www-form-urlencoded")
 	}
 
 	// Start Timer
