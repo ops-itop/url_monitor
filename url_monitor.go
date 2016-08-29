@@ -186,29 +186,52 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 	if h.RequireStr == "" {
 		fields["data_match"] = 1
 	}else{
-		r,_ := regexp.Compile(h.RequireStr)
-		//r,_ := regexp.CompilePOSIX(h.RequireStr)
 		body,_ := ioutil.ReadAll(resp.Body)
 		bodystr := string(body)
-		if r.FindString(bodystr) != ""{
-			fields["data_match"] = 1
-		}else {
-			fields["data_match"] = 0
-			fields["msg"] = bodystr
+
+		r,err := regexp.Compile(h.RequireStr)
+		//r,_ := regexp.CompilePOSIX(h.RequireStr)
+
+		if err != nil {
+			if strings.Contains(bodystr, h.RequireStr) {
+				fields["data_match"] = 1
+			}else{
+				fields["data_match"] = 0
+				fields["msg"] = bodystr
+			}
+		}else{
+			if r.FindString(bodystr) != ""{
+				fields["data_match"] = 1
+			}else {
+				fields["data_match"] = 0
+				fields["msg"] = bodystr
+			}
 		}
+		
 	}
 
 	// require http code
 	if h.RequireCode == "" {
 		fields["code_match"] = 1
 	}else {
-		r,_ := regexp.Compile(h.RequireCode)
-		//r,_ := regexp.CompilePOSIX(h.RequireCode)
 		status_code :=  strconv.Itoa(resp.StatusCode)
-		if r.FindString(status_code) != "" {
-			fields["code_match"] = 1
-		}else {
-			fields["code_match"] = 0
+
+		r,err := regexp.Compile(h.RequireCode)
+		//r,_ := regexp.CompilePOSIX(h.RequireCode)
+		
+		if err != nil {
+			if strings.Contains(status_code, h.RequireCode) {
+				fields["code_match"] = 1
+			}else{
+				fields["code_match"] = 0
+			}
+
+		}else{
+			if r.FindString(status_code) != "" {
+				fields["code_match"] = 1
+			}else {
+				fields["code_match"] = 0
+			}
 		}
 	}
 	fields["response_time"] = time.Since(start).Seconds()
