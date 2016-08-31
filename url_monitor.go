@@ -10,6 +10,7 @@ import (
 	"time"
 	"regexp"
 	"strconv"
+	"fmt"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/internal"
@@ -18,6 +19,7 @@ import (
 
 // HTTPResponse struct
 type HTTPResponse struct {
+	Cmdbid          string
 	App				string
 	Address         string
 	Body            string
@@ -48,6 +50,8 @@ func (h *HTTPResponse) Description() string {
 var sampleConfig = `
   ## App Name
   app = "monitor"
+  ## CMDB ID
+  cmdbid = "1701"
   ## Server address (default http://localhost)
   address = "http://www.baidu.com"
   ## Set response_timeout (default 5 seconds)
@@ -180,6 +184,7 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 		fields["code_match"] = 0
 		fields["response_time"] = time.Since(start).Seconds()
 		fields["http_code"] = 000
+		fields["msg"] = suberrmsg(fields["msg"])
 		return fields, nil
 	}
 	// require string
@@ -247,6 +252,9 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 	if fields["time_match"] == 0 && rt < h.FailedTimeout * 0.7 {
 		fields["time_match"] = 1
 	}
+
+	// fields['msg']中文unicode转字符串，并截取超长的内容
+	fields["msg"] = suberrmsg(fields["msg"])
 	return fields, nil
 }
 
@@ -271,7 +279,7 @@ func (h *HTTPResponse) Gather(acc telegraf.Accumulator) error {
 		return errors.New("Only http and https are supported")
 	}
 	// Prepare data
-	tags := map[string]string{"app": h.App, "url": h.Address, "method": h.Method, "require_code": h.RequireCode, "require_str":h.RequireStr, "require_time":strconv.FormatFloat(h.FailedTimeout, 'g', 1, 64), "failed_threshold":strconv.Itoa(h.FailedCount)}
+	tags := map[string]string{"cmdbid": h.Cmdbid, "app": h.App, "url": h.Address, "method": h.Method, "require_code": h.RequireCode, "require_str":h.RequireStr, "require_time":strconv.FormatFloat(h.FailedTimeout, 'g', 1, 64), "failed_threshold":strconv.Itoa(h.FailedCount)}
 	var fields map[string]interface{}
 	// Gather data
 	fields, err = h.HTTPGather()
@@ -287,4 +295,46 @@ func init() {
 	inputs.Add("url_monitor", func() telegraf.Input {
 		return &HTTPResponse{}
 	})
+}
+
+// fields['msg']最长不超过1kb
+func suberrmsg(errmsg interface{}) (submsg string) {
+	limit := 1250
+	str := fmt.Sprint(errmsg)
+	u2s,_ := unicode2str(str)
+	if len(u2s) > limit {
+		submsg = u2s[0:limit]
+	}else{
+		submsg = u2s
+	}
+	return
+}
+
+// convert unicode chinese char to string
+func unicode2str(u string) (context string, err error) {
+    sUnicodev := strings.Split(u,"\\u")
+    for _, v := range sUnicodev {
+        if len(v) < 1 {
+            continue
+        }
+		if len(v) > 4 {
+			v1 := v[0:4]
+			v2 := v[4:len(v)]
+			temp, err := strconv.ParseInt(v1, 16, 32)
+			if err != nil {
+				context += v
+			}else{
+				context += fmt.Sprintf("%c", temp)
+				context += v2
+			}
+		}else{
+			temp, err := strconv.ParseInt(v, 16, 32)
+			if err != nil {
+				context += v
+			}else{
+				context += fmt.Sprintf("%c", temp)
+			}
+		}
+    }
+	return
 }
