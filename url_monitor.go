@@ -184,7 +184,6 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 		fields["code_match"] = 0
 		fields["response_time"] = time.Since(start).Seconds()
 		fields["http_code"] = 000
-		fields["msg"] = suberrmsg(fields["msg"])
 		return fields, nil
 	}
 	// require string
@@ -202,14 +201,15 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 				fields["data_match"] = 1
 			}else{
 				fields["data_match"] = 0
-				fields["msg"] = bodystr
+				// fields['msg']中文unicode转字符串，并截取超长的内容
+				fields["msg"] = suberrmsg(bodystr)
 			}
 		}else{
 			if r.FindString(bodystr) != ""{
 				fields["data_match"] = 1
 			}else {
 				fields["data_match"] = 0
-				fields["msg"] = bodystr
+				fields["msg"] = suberrmsg(bodystr)
 			}
 		}
 		
@@ -253,8 +253,6 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 		fields["time_match"] = 1
 	}
 
-	// fields['msg']中文unicode转字符串，并截取超长的内容
-	fields["msg"] = suberrmsg(fields["msg"])
 	return fields, nil
 }
 
@@ -298,10 +296,9 @@ func init() {
 }
 
 // fields['msg']最长不超过1kb
-func suberrmsg(errmsg interface{}) (submsg string) {
+func suberrmsg(errmsg string) (submsg string) {
 	limit := 1250
-	str := fmt.Sprint(errmsg)
-	u2s,_ := unicode2str(str)
+	u2s,_ := unicode2str(errmsg)
 	if len(u2s) > limit {
 		submsg = u2s[0:limit]
 	}else{
