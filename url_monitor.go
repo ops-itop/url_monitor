@@ -121,6 +121,12 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 	// Prepare fields
 	fields := make(map[string]interface{})
 
+	// 经常被用户更改配置的变量不在作为tag，作为fields
+	fields["require_code"] = h.RequireCode
+	fields["require_str"] = h.RequireStr
+	fields["require_time"] = strconv.FormatFloat(h.FailedTimeout, 'g', 1, 64)
+	fields["failed_threshold"] = strconv.Itoa(h.FailedCount)
+
 	client, err := h.createHttpClient()
 	if err != nil {
 		return nil, err
@@ -278,7 +284,7 @@ func (h *HTTPResponse) Gather(acc telegraf.Accumulator) error {
 		return errors.New("Only http and https are supported")
 	}
 	// Prepare data
-	tags := map[string]string{"cmdbid": h.Cmdbid, "app": h.App, "url": h.Address, "method": h.Method, "require_code": h.RequireCode, "require_str":h.RequireStr, "require_time":strconv.FormatFloat(h.FailedTimeout, 'g', 1, 64), "failed_threshold":strconv.Itoa(h.FailedCount)}
+	tags := map[string]string{"cmdbid": h.Cmdbid, "app": h.App, "url": h.Address, "method": h.Method}
 	var fields map[string]interface{}
 	// Gather data
 	fields, err = h.HTTPGather()
