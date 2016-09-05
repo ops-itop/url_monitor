@@ -182,6 +182,7 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 	if ok {
 		fields["data_match"] = 0
 		fields["code_match"] = 0
+		fields["time_match"] = 0
 		fields["response_time"] = time.Since(start).Seconds()
 		fields["http_code"] = 000
 		return fields, nil
