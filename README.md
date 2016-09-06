@@ -3,21 +3,23 @@
 This input plugin will test HTTP/HTTPS connections.
 
 ### Configuration:
-
-
 ```
 # HTTP/HTTPS request given an address a method and a timeout
 [[inputs.url_monitor]]
   ## App Name
   app = "monitor"
+  ## CMDB ID
+  cmdbid = "1701"
   ## Server address (default http://localhost)
   address = "http://www.baidu.com"
   ## Set response_timeout (default 5 seconds)
   response_timeout = "5s"
   ## HTTP Request Method
   method = "GET"
-  ## Require String 正则表达式用单引号避免转义
-  require_str = 'baidu.com'
+  ## Require String 正则表达式用单引号避免转义,如果需要包含单引号，请使用'''。如果字符串末尾有单引号'，需要换行
+  require_str = '''
+baidu.com
+'''
   require_code = '20\d'
   failed_count = 3
   failed_timeout = 0.5
@@ -46,15 +48,19 @@ This input plugin will test HTTP/HTTPS connections.
 - url_monitor
     - response_time (float, seconds)
     - http_code (int) #The code received
+	- data_match
+	- time_match
+	- code_match
 	- require_code
-	- require_match
+	- require_str
+	- require_time
+
 
 ### Tags:
 
 - All measurements have the following tags:
 	- app
-	- require_code
-	- require_str
+	- cmdbid
     - url
     - method
 
@@ -63,5 +69,5 @@ This input plugin will test HTTP/HTTPS connections.
 ```
 # ./telegraf -config url.conf -test
 * Plugin: url_monitor, Collection 1
-> url_monitor,app=monitor,host=HADOOP-215,method=GET,require_code=20\d,require_str=baidu.com,url=http://www.baidu.com http_code=200i,require_code=true,require_match=true,response_time=1.145418338 1469890263000000000
+> url_monitor,app=monitor,cmdbid=1701,host=HADOOP-215,method=GET,url=http://www.baidu.com code_match=1i,data_match=1i,failed_threshold="3",http_code=200i,require_code="20\\d",require_str="baidu.com",require_time="0.0005",response_time=0.023157402,time_match=0i 1473150864000000000
 ```

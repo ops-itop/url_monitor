@@ -58,8 +58,10 @@ var sampleConfig = `
   response_timeout = "5s"
   ## HTTP Request Method
   method = "GET"
-  ## Require String 正则表达式用单引号避免转义
-  require_str = 'baidu.com'
+  ## Require String 正则表达式用单引号避免转义,如果需要包含单引号，请使用'''。如果字符串末尾有单引号'，需要换行
+  require_str = '''
+baidu.com
+'''
   require_code = '20\d'
   failed_count = 3
   failed_timeout = 0.5
