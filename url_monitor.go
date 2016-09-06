@@ -121,9 +121,15 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 	// Prepare fields
 	fields := make(map[string]interface{})
 
+	// 为了require_str,require_code能够包含任意字符，使用多行'''包裹，因此需要去除换行符
+	rStr := strings.Replace(h.RequireStr, "\r", "", -1)
+	rStr = strings.Replace(rStr, "\n", "", -1)
+	rCode := strings.Replace(h.RequireCode, "\r", "", -1)
+	rCode = strings.Replace(rCode, "\n", "", -1)
+
 	// 经常被用户更改配置的变量不在作为tag，作为fields
-	fields["require_code"] = h.RequireCode
-	fields["require_str"] = h.RequireStr
+	fields["require_code"] = rCode
+	fields["require_str"] = rStr
 	fields["require_time"] = strconv.FormatFloat(h.FailedTimeout, 'g', 1, 64)
 	fields["failed_threshold"] = strconv.Itoa(h.FailedCount)
 
@@ -196,17 +202,17 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 		return fields, nil
 	}
 	// require string
-	if h.RequireStr == "" {
+	if rStr == "" {
 		fields["data_match"] = 1
 	}else{
 		body,_ := ioutil.ReadAll(resp.Body)
 		bodystr := string(body)
 
-		r,err := regexp.Compile(h.RequireStr)
-		//r,_ := regexp.CompilePOSIX(h.RequireStr)
+		r,err := regexp.Compile(rStr)
+		//r,_ := regexp.CompilePOSIX(rStr)
 
 		if err != nil {
-			if strings.Contains(bodystr, h.RequireStr) {
+			if strings.Contains(bodystr, rStr) {
 				fields["data_match"] = 1
 			}else{
 				fields["data_match"] = 0
@@ -225,16 +231,16 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 	}
 
 	// require http code
-	if h.RequireCode == "" {
+	if rCode == "" {
 		fields["code_match"] = 1
 	}else {
 		status_code :=  strconv.Itoa(resp.StatusCode)
 
-		r,err := regexp.Compile(h.RequireCode)
-		//r,_ := regexp.CompilePOSIX(h.RequireCode)
+		r,err := regexp.Compile(rCode)
+		//r,_ := regexp.CompilePOSIX(rCode)
 		
 		if err != nil {
-			if strings.Contains(status_code, h.RequireCode) {
+			if strings.Contains(status_code, rCode) {
 				fields["code_match"] = 1
 			}else{
 				fields["code_match"] = 0
