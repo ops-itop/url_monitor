@@ -25,6 +25,10 @@ baidu.com
   failed_timeout = 0.5
   ## Whether to follow redirects from the server (defaults to false)
   follow_redirects = true
+  ## GET params
+  params = '''
+ak=xxx&sign=xxx
+'''
   ## Optional HTTP Request Body
   # body = '''
   # {'fake':'data'}

@@ -22,6 +22,7 @@ type HTTPResponse struct {
 	Cmdbid          string
 	App				string
 	Address         string
+	Params          string
 	Body            string
 	Method          string
 	ResponseTimeout internal.Duration
@@ -67,6 +68,10 @@ baidu.com
   failed_timeout = 0.5
   ## Whether to follow redirects from the server (defaults to false)
   follow_redirects = true
+  ## GET params
+  params = '''
+tk=xxx&sign=xxx
+'''
   ## Optional HTTP Request Body
   # body = '''
   # {'fake':'data'}
@@ -128,6 +133,8 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 	rStr = strings.Replace(rStr, "\n", "", -1)
 	rCode := strings.Replace(h.RequireCode, "\r", "", -1)
 	rCode = strings.Replace(rCode, "\n", "", -1)
+	rParms := strings.Replace(h.Params, "\r", "", -1)
+	rParms = strings.Replace(rParms, "\n", "", -1)
 
 	// 经常被用户更改配置的变量不在作为tag，作为fields
 	fields["require_code"] = rCode
@@ -141,15 +148,9 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 	}
 
 	var body io.Reader
-	address := h.Address
+	address := h.Address + "?" + rParms
 	if h.Body != "" {
 		body = strings.NewReader(h.Body)
-		if h.Method == "GET" {
-			params := strings.Replace(h.Body, "\n", "", -1)
-			params = strings.Replace(params, "\r", "", -1)
-			address = h.Address + "?" + params
-			body = nil
-		}
 	}
 	request, err := http.NewRequest(h.Method, address, body)
 	if err != nil {
