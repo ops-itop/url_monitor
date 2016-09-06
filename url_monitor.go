@@ -129,12 +129,10 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 	fields := make(map[string]interface{})
 
 	// 为了require_str,require_code能够包含任意字符，使用多行'''包裹，因此需要去除换行符
-	rStr := strings.Replace(h.RequireStr, "\r", "", -1)
-	rStr = strings.Replace(rStr, "\n", "", -1)
-	rCode := strings.Replace(h.RequireCode, "\r", "", -1)
-	rCode = strings.Replace(rCode, "\n", "", -1)
-	rParms := strings.Replace(h.Params, "\r", "", -1)
-	rParms = strings.Replace(rParms, "\n", "", -1)
+	rStr := trimStr(h.RequireStr)
+	rCode := trimStr(h.RequireCode)
+	rParms := trimStr(h.Params)
+	rBody := trimStr(h.Body)
 
 	// 经常被用户更改配置的变量不在作为tag，作为fields
 	fields["require_code"] = rCode
@@ -149,8 +147,8 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 
 	var body io.Reader
 	address := h.Address + "?" + rParms
-	if h.Body != "" {
-		body = strings.NewReader(h.Body)
+	if rBody != "" {
+		body = strings.NewReader(rBody)
 	}
 	request, err := http.NewRequest(h.Method, address, body)
 	if err != nil {
@@ -311,6 +309,14 @@ func init() {
 	inputs.Add("url_monitor", func() telegraf.Input {
 		return &HTTPResponse{}
 	})
+}
+
+// delete \n \r from string
+
+func trimStr(str string) (newstr string) {
+	newstr = strings.Replace(str, "\r", "", -1)
+	newstr = strings.Replace(newstr, "\n", "", -1)
+	return
 }
 
 // fields['msg']最长不超过1kb
