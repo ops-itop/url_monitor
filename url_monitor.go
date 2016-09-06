@@ -137,7 +137,9 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 	if h.Body != "" {
 		body = strings.NewReader(h.Body)
 		if h.Method == "GET" {
-			address = h.Address + "?" + h.Body
+			params := strings.Replace(h.Body, "\n", "", -1)
+			params = strings.Replace(params, "\r", "", -1)
+			address = h.Address + "?" + params
 			body = nil
 		}
 	}
