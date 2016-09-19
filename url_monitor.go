@@ -328,6 +328,9 @@ func suberrmsg(errmsg string) (submsg string) {
 	}else{
 		submsg = u2s
 	}
+	r := regexp.MustCompile(`(.*?)?\\\\*$`)
+	rep := "${1}."
+	submsg = r.ReplaceAllString(submsg, rep)
 	return
 }
 
