@@ -2,15 +2,15 @@ package url_monitor
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
-	"time"
 	"regexp"
 	"strconv"
-	"fmt"
+	"strings"
+	"time"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/internal"
@@ -20,7 +20,7 @@ import (
 // HTTPResponse struct
 type HTTPResponse struct {
 	Cmdbid          string
-	App				string
+	App             string
 	Address         string
 	Params          string
 	Body            string
@@ -28,7 +28,7 @@ type HTTPResponse struct {
 	ResponseTimeout internal.Duration
 	Headers         map[string]string
 	FollowRedirects bool
-	RequireStr		string
+	RequireStr      string
 	RequireCode     string
 	FailedCount     int
 	FailedTimeout   float64
@@ -163,7 +163,7 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 		if key == "Host" {
 			request.Host = val
 		}
-		
+
 		//如果指定了content-type, content_type设置为1
 		if strings.ToLower(key) == "content-type" {
 			content_type = 1
@@ -177,6 +177,8 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 	// Start Timer
 	start := time.Now()
 	resp, err := client.Do(request)
+	// 保证关闭连接. 不关闭连接将导致close-wait累积，最终占满端口。监控将报错:cannot assign requested address
+	defer resp.Body.Close()
 	if err != nil {
 		if h.FollowRedirects {
 			fields["msg"] = err
@@ -193,7 +195,7 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 		}
 	}
 
-	_, ok := fields["msg"] 
+	_, ok := fields["msg"]
 	if ok {
 		fields["data_match"] = 0
 		fields["code_match"] = 0
@@ -205,52 +207,52 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 	// require string
 	if rStr == "" {
 		fields["data_match"] = 1
-	}else{
-		body,_ := ioutil.ReadAll(resp.Body)
+	} else {
+		body, _ := ioutil.ReadAll(resp.Body)
 		bodystr := string(body)
 
-		r,err := regexp.Compile(rStr)
+		r, err := regexp.Compile(rStr)
 		//r,_ := regexp.CompilePOSIX(rStr)
 
 		if err != nil {
 			if strings.Contains(bodystr, rStr) {
 				fields["data_match"] = 1
-			}else{
+			} else {
 				fields["data_match"] = 0
 				// fields['msg']中文unicode转字符串，并截取超长的内容
 				fields["msg"] = suberrmsg(bodystr)
 			}
-		}else{
-			if r.FindString(bodystr) != ""{
+		} else {
+			if r.FindString(bodystr) != "" {
 				fields["data_match"] = 1
-			}else {
+			} else {
 				fields["data_match"] = 0
 				fields["msg"] = suberrmsg(bodystr)
 			}
 		}
-		
+
 	}
 
 	// require http code
 	if rCode == "" {
 		fields["code_match"] = 1
-	}else {
-		status_code :=  strconv.Itoa(resp.StatusCode)
+	} else {
+		status_code := strconv.Itoa(resp.StatusCode)
 
-		r,err := regexp.Compile(rCode)
+		r, err := regexp.Compile(rCode)
 		//r,_ := regexp.CompilePOSIX(rCode)
-		
+
 		if err != nil {
 			if strings.Contains(status_code, rCode) {
 				fields["code_match"] = 1
-			}else{
+			} else {
 				fields["code_match"] = 0
 			}
 
-		}else{
+		} else {
 			if r.FindString(status_code) != "" {
 				fields["code_match"] = 1
-			}else {
+			} else {
 				fields["code_match"] = 0
 			}
 		}
@@ -265,7 +267,7 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 	if rt > h.FailedTimeout {
 		fields["time_match"] = 0
 	}
-	if fields["time_match"] == 0 && rt < h.FailedTimeout * 0.7 {
+	if fields["time_match"] == 0 && rt < h.FailedTimeout*0.7 {
 		fields["time_match"] = 1
 	}
 
@@ -322,10 +324,10 @@ func trimStr(str string) (newstr string) {
 // fields['msg']最长不超过1kb
 func suberrmsg(errmsg string) (submsg string) {
 	limit := 1250
-	u2s,_ := unicode2str(errmsg)
+	u2s, _ := unicode2str(errmsg)
 	if len(u2s) > limit {
 		submsg = u2s[0:limit]
-	}else{
+	} else {
 		submsg = u2s
 	}
 	r := regexp.MustCompile(`(.*?)?\\\\*$`)
@@ -336,29 +338,29 @@ func suberrmsg(errmsg string) (submsg string) {
 
 // convert unicode chinese char to string
 func unicode2str(u string) (context string, err error) {
-    sUnicodev := strings.Split(u,"\\u")
-    for _, v := range sUnicodev {
-        if len(v) < 1 {
-            continue
-        }
+	sUnicodev := strings.Split(u, "\\u")
+	for _, v := range sUnicodev {
+		if len(v) < 1 {
+			continue
+		}
 		if len(v) > 4 {
 			v1 := v[0:4]
 			v2 := v[4:len(v)]
 			temp, err := strconv.ParseInt(v1, 16, 32)
 			if err != nil {
 				context += v
-			}else{
+			} else {
 				context += fmt.Sprintf("%c", temp)
 				context += v2
 			}
-		}else{
+		} else {
 			temp, err := strconv.ParseInt(v, 16, 32)
 			if err != nil {
 				context += v
-			}else{
+			} else {
 				context += fmt.Sprintf("%c", temp)
 			}
 		}
-    }
+	}
 	return
 }
