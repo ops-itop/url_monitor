@@ -178,7 +178,10 @@ func (h *HTTPResponse) HTTPGather() (map[string]interface{}, error) {
 	start := time.Now()
 	resp, err := client.Do(request)
 	// 保证关闭连接. 不关闭连接将导致close-wait累积，最终占满端口。监控将报错:cannot assign requested address
-	defer resp.Body.Close()
+	// 当请求失败，resp为nil时，直接defer会导致panic，因此需要先判断
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		if h.FollowRedirects {
 			fields["msg"] = err
